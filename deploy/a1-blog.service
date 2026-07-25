@@ -1,0 +1,19 @@
+[Unit]
+Description=Blog Studio dashboard (tailnet only)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/blog-studio
+# localhost에만 바인딩한다. 외부 노출은 tailscale serve가 담당한다.
+ExecStart=/home/ubuntu/blog-studio/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8800
+Restart=on-failure
+RestartSec=5
+
+# claude 실행에 PATH가 필요하다 (systemd는 로그인 셸 환경을 안 물려준다).
+Environment=PATH=/home/ubuntu/.local/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=multi-user.target
