@@ -1,14 +1,18 @@
 [Unit]
 Description=Blog Studio dashboard (tailnet only)
-After=network-online.target
+After=network-online.target tailscaled.service
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=ubuntu
 WorkingDirectory=/home/ubuntu/blog-studio
-# localhost에만 바인딩한다. 외부 노출은 tailscale serve가 담당한다.
-ExecStart=/home/ubuntu/blog-studio/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8800
+# Tailscale IP에만 바인딩한다. tailnet 기기 외에는 물리적으로 도달 불가라
+# 공개 포트를 열 필요도, 방화벽 규칙에 의존할 필요도 없다.
+# (HTTPS 인증서 기능이 계정 플랜에서 안 돼 tailscale serve 대신 직접 바인딩)
+# 부팅 시 tailscale 인터페이스가 늦게 올라오면 바인딩이 실패할 수 있으나,
+# Restart=on-failure가 인터페이스가 뜰 때까지 재시도한다.
+ExecStart=/home/ubuntu/blog-studio/.venv/bin/uvicorn app.main:app --host 100.80.147.80 --port 8800
 Restart=on-failure
 RestartSec=5
 

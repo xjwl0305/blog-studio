@@ -33,12 +33,16 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8800
 ```
 
-tailnet 노출:
+tailnet 노출 — Tailscale IP에 직접 바인딩:
 
 ```bash
-sudo tailscale serve --bg 8800
-# https://<host>.<tailnet>.ts.net 로 접속 (tailnet 기기만)
+# HTTPS 인증서 기능이 안 되는 계정 플랜이라 tailscale serve 대신 직접 바인딩.
+# systemd 유닛(deploy/a1-blog.service)이 100.x(Tailscale IP):8800에 바인딩한다.
+# tailnet 기기에서 http://<Tailscale IP>:8800 으로 접속.
 ```
+
+tailnet 기기 외에는 물리적으로 도달 불가하다. 공개 포트를 열지 않고,
+방화벽 규칙에도 의존하지 않는다 (특정 인터페이스에만 바인딩).
 
 ## 마스킹 범위
 
