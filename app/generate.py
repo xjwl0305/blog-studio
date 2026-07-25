@@ -176,6 +176,10 @@ async def generate(
         *argv, cwd=WORKDIR,
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
         start_new_session=True,
+        # 스트림 JSON 한 줄이 기본 64KB를 넘으면 리더가 터진다. 이미지를 Read하면
+        # tool_result가 base64로 한 줄에 실려 이미지 하나가 수 MB가 된다.
+        # 업로드 상한 25MB → base64 약 34MB이므로 여유를 둬 48MB로 잡는다.
+        limit=48 * 1024 * 1024,
     )
     if handle is not None:
         handle.attach(proc)

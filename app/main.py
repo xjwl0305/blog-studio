@@ -102,9 +102,17 @@ async def _run_job(job: Job, content: str, images: list[Path], material: str,
             job.progress.append(line)
         job.progress[:] = job.progress[-40:]
 
-    async with _lock:
-        result = await generate(content, images, material, blog_type,
-                                on_progress=on_progress, handle=job.handle)
+    # 어떤 예외가 나든 작업이 'running'에 영원히 멈추지 않게 감싼다.
+    # (예전엔 generate가 예외를 던지면 상태가 running으로 남아 UI가 무한 대기했다.)
+    try:
+        async with _lock:
+            result = await generate(content, images, material, blog_type,
+                                    on_progress=on_progress, handle=job.handle)
+    except Exception as exc:
+        log.exception("생성 중 예외")
+        job.status, job.error = "error", f"내부 오류: {type(exc).__name__}: {exc}"[:200]
+        return
+
     if result.cancelled:
         job.status = "cancelled"; return
     if result.error:
