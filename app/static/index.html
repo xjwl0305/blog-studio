@@ -45,19 +45,32 @@
   .banner.err { background:#2a1414; border:1px solid #5c1f1f; color:#ff7b72; }
   .banner code { font-size:12px; opacity:.9; } .actions { display:flex; gap:10px; margin:12px 0; }
   .cost { color:var(--mut); font-size:12px; margin-top:8px; }
+  .typebtn { background:#0c0e12; color:var(--mut); border:1px solid var(--line); border-radius:20px;
+    padding:8px 14px; font-size:13px; font-weight:500; cursor:pointer; }
+  .typebtn.on { background:var(--accent); color:#08111f; border-color:var(--accent); font-weight:600; }
 </style>
 </head>
 <body>
 <header><h1>📝 Blog Studio</h1><span class="sub">tailnet 전용 · 마스킹 자동</span></header>
 <main>
   <div class="card">
-    <label>① 작업 세션에서 불러오기 (선택) — 이전에 넣어둔 컨텍스트 기반 작성</label>
+    <label>글 종류</label>
+    <div id="types" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+      <button type="button" class="typebtn on" data-type="tech">🛠 기술</button>
+      <button type="button" class="typebtn" data-type="travel">✈️ 여행 리뷰</button>
+      <button type="button" class="typebtn" data-type="daily">🌤 일상</button>
+      <button type="button" class="typebtn" data-type="review">⭐ 맛집·제품 리뷰</button>
+    </div>
+
+    <div id="techOnly">
+    <label style="margin-top:14px">① 작업 세션에서 불러오기 (선택) — 이전에 넣어둔 컨텍스트 기반 작성</label>
     <input type="text" id="sessSearch" placeholder="🔍 키워드로 세션 검색 (예: elk fleet, etcd, 크롤링) — 비우면 최신순 전체"
            style="width:100%; background:#0c0e12; color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:13px; margin-bottom:8px;">
     <select id="session"><option value="">— 세션 선택 안 함 —</option></select>
     <div class="sess-hint" id="sessHint">동기화된 세션을 재료로 쓰면, 내용을 직접 안 적어도 그 사건을 블로그로 정리합니다.</div>
+    </div>
 
-    <label style="margin-top:18px">② 내용 · 히스토리 (직접 입력, 세션과 함께 써도 됨)</label>
+    <label style="margin-top:18px" id="contentLabel">② 내용 · 히스토리 (직접 입력, 세션과 함께 써도 됨)</label>
     <textarea id="content" placeholder="예: 새벽마다 k3s가 죽었다. etcd 로그에 apply request took too long 947ms..."></textarea>
 
     <label style="margin-top:16px">③ 이미지 · 파일 (스크린샷·다이어그램·md/pdf)</label>
@@ -86,7 +99,28 @@
 
 <script>
 const $ = s => document.querySelector(s);
-let files = [], curJobId = null, polling = false;
+let files = [], curJobId = null, polling = false, blogType = "tech";
+
+// 글 종류 선택
+const PLACEHOLDERS = {
+  tech: "예: 새벽마다 k3s가 죽었다. etcd 로그에 apply request took too long 947ms...",
+  travel: "예: 강릉 2박3일. 안목해변 카페거리, 초당순두부. 날씨 흐렸지만 바다뷰 좋았음. 주차 빡셌음...",
+  daily: "예: 오랜만에 아무 약속 없는 주말. 늦잠 자고 동네 산책. 요즘 드는 생각들...",
+  review: "예: OO식당 내돈내산. 김치찌개 9천원. 반찬 리필됨. 웨이팅 20분. 재방문 의사 있음...",
+};
+document.querySelectorAll(".typebtn").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll(".typebtn").forEach(x => x.classList.remove("on"));
+    b.classList.add("on");
+    blogType = b.dataset.type;
+    // 세션 선택은 기술 글에서만 의미 있음
+    $("#techOnly").style.display = blogType === "tech" ? "block" : "none";
+    $("#content").placeholder = PLACEHOLDERS[blogType] || "";
+    $("#contentLabel").textContent = blogType === "tech"
+      ? "② 내용 · 히스토리 (직접 입력, 세션과 함께 써도 됨)"
+      : "내용 · 메모 (사진과 함께 넣으면 더 좋습니다)";
+  };
+});
 
 // 세션 목록 로드 (검색 지원)
 async function loadSessions(q = "") {
@@ -137,13 +171,15 @@ function renderThumbs() {
 }
 
 $("#go").onclick = async () => {
-  const content = $("#content").value, session = $("#session").value;
-  if (!content.trim() && files.length === 0 && !session) { setStatus("세션·내용·이미지 중 하나는 넣어주세요"); return; }
+  const content = $("#content").value;
+  const session = blogType === "tech" ? $("#session").value : "";  // 세션은 기술 글에서만
+  if (!content.trim() && files.length === 0 && !session) { setStatus("내용·이미지" + (blogType==="tech"?"·세션":"") + " 중 하나는 넣어주세요"); return; }
   $("#go").disabled = true; $("#cancel").style.display = "inline-block";
   $("#result").style.display = "none"; $("#prog").classList.add("on"); $("#prog").innerHTML = "";
   setStatus("시작하는 중…");
   const fd = new FormData();
   fd.append("content", content); fd.append("session_id", session);
+  fd.append("blog_type", blogType);
   files.forEach(f => fd.append("files", f));
   const r = await fetch("/api/generate", { method: "POST", body: fd });
   const { job_id } = await r.json(); curJobId = job_id; polling = true; poll(job_id);

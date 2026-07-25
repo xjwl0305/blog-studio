@@ -84,7 +84,8 @@ async def _save_uploads(files: list[UploadFile], job_id: str) -> tuple[list[Path
     return saved, errs
 
 
-async def _run_job(job: Job, content: str, images: list[Path], material: str) -> None:
+async def _run_job(job: Job, content: str, images: list[Path], material: str,
+                   blog_type: str) -> None:
     from time import monotonic
     job.started = monotonic()
     # 첫 이벤트가 오기까지(재료가 크면 수십 초) 빈 화면이 되지 않게 초기 표시.
@@ -102,7 +103,7 @@ async def _run_job(job: Job, content: str, images: list[Path], material: str) ->
         job.progress[:] = job.progress[-40:]
 
     async with _lock:
-        result = await generate(content, images, material,
+        result = await generate(content, images, material, blog_type,
                                 on_progress=on_progress, handle=job.handle)
     if result.cancelled:
         job.status = "cancelled"; return
@@ -121,6 +122,7 @@ async def _run_job(job: Job, content: str, images: list[Path], material: str) ->
 async def api_generate(
     content: str = Form(""),
     session_id: str = Form(""),
+    blog_type: str = Form("tech"),
     files: list[UploadFile] = None,
 ):
     job = Job(id=uuid.uuid4().hex)
@@ -134,7 +136,7 @@ async def api_generate(
         job.warnings.append("선택한 세션에서 재료를 뽑지 못했습니다(경로 확인).")
     if upload_errs:
         job.warnings.extend(upload_errs)
-    asyncio.create_task(_run_job(job, content, images, material))
+    asyncio.create_task(_run_job(job, content, images, material, blog_type))
     return {"job_id": job.id}
 
 
