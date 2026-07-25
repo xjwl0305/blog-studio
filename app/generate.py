@@ -207,10 +207,15 @@ async def generate(
     last_event = time.monotonic()
     streaming = False  # 첫 실질 응답(assistant/result)을 받았는가
 
-    # 첫 응답까지 허용 시간(warmup). 이미지가 많으면 업로드+시각 처리로 첫 토큰이
-    # 늦다(16장이면 2분 넘게 걸린다). 이미지 수에 비례해 넉넉히 준다.
-    # 응답이 시작된 뒤에는 STALL_SECONDS(짧게)로 진짜 stall만 잡는다.
-    warmup = max(STALL_SECONDS, 90 + len(image_paths) * 20)
+    # 무진행 감시 임계값. 이미지가 많으면 두 지점에서 오래 걸린다:
+    #  1) 첫 응답(warmup): 업로드 + 시각 처리로 첫 토큰이 늦다
+    #  2) 이미지를 다 읽은 뒤 → 실제 글 쓰기 시작 전: 방대한 멀티모달 컨텍스트를
+    #     재처리하느라 이벤트 사이 간격이 벌어진다 (실측: 16장에서 75초 초과)
+    # 둘 다 이미지 수에 비례해 넉넉히 잡는다. 진짜 stall(연결은 살았는데 무한 침묵)은
+    # 그래도 결국 걸린다.
+    n_img = len(image_paths)
+    warmup = max(120, 90 + n_img * 20)          # 첫 응답 전
+    stall_gap = max(STALL_SECONDS, 75 + n_img * 15)  # 응답 시작 후
 
     async def pump() -> None:
         nonlocal final, last_event, streaming
@@ -241,10 +246,10 @@ async def generate(
         # 무진행 감시. 첫 응답 전엔 warmup, 응답 시작 후엔 STALL_SECONDS를 쓴다.
         while proc.returncode is None:
             await asyncio.sleep(5)
-            limit = STALL_SECONDS if streaming else warmup
+            limit = stall_gap if streaming else warmup
             if time.monotonic() - last_event > limit:
-                log.warning("무진행 %d초(%s) — 중단",
-                            int(limit), "streaming" if streaming else "warmup")
+                log.warning("무진행 %d초(%s, 이미지 %d장) — 중단",
+                            int(limit), "streaming" if streaming else "warmup", n_img)
                 _kill_tree(proc)
                 return
 
