@@ -52,6 +52,8 @@
 <main>
   <div class="card">
     <label>① 작업 세션에서 불러오기 (선택) — 이전에 넣어둔 컨텍스트 기반 작성</label>
+    <input type="text" id="sessSearch" placeholder="🔍 키워드로 세션 검색 (예: elk fleet, etcd, 크롤링) — 비우면 최신순 전체"
+           style="width:100%; background:#0c0e12; color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:13px; margin-bottom:8px;">
     <select id="session"><option value="">— 세션 선택 안 함 —</option></select>
     <div class="sess-hint" id="sessHint">동기화된 세션을 재료로 쓰면, 내용을 직접 안 적어도 그 사건을 블로그로 정리합니다.</div>
 
@@ -86,19 +88,34 @@
 const $ = s => document.querySelector(s);
 let files = [], curJobId = null, polling = false;
 
-// 세션 목록 로드
-fetch("/api/sessions").then(r => r.json()).then(d => {
+// 세션 목록 로드 (검색 지원)
+async function loadSessions(q = "") {
   const sel = $("#session");
+  const keep = sel.value;
+  const d = await (await fetch("/api/sessions?q=" + encodeURIComponent(q))).json();
+  sel.innerHTML = '<option value="">— 세션 선택 안 함 —</option>';
   (d.sessions || []).forEach(s => {
     const o = document.createElement("option");
     o.value = s.id;
-    o.textContent = `[${s.project}] ${s.title || "(제목없음)"} · ${s.prompts}질문 · ${s.size_kb}KB`;
+    // 검색 결과면 매칭된 스니펫을, 아니면 첫 질문을 보여준다.
+    const label = s.snippet || s.title || "(제목없음)";
+    o.textContent = `[${s.project}] ${label} · ${s.prompts}질문${s.score ? " · ★" + s.score : ""}`;
     sel.appendChild(o);
   });
-  $("#sessHint").textContent = (d.sessions||[]).length
-    ? `동기화된 세션 ${d.sessions.length}개. 선택하면 그 사건을 블로그로 정리합니다.`
-    : "동기화된 세션이 없습니다. 내용을 직접 입력하세요.";
-});
+  if ([...sel.options].some(o => o.value === keep)) sel.value = keep;
+  const n = (d.sessions || []).length;
+  $("#sessHint").textContent = q
+    ? (n ? `"${q}" 검색 결과 ${n}개 (관련도순, ★=매칭수)` : `"${q}" 검색 결과 없음`)
+    : (n ? `동기화된 세션 ${n}개 (최신순). 검색하거나 골라서 쓰세요.` : "동기화된 세션이 없습니다.");
+}
+loadSessions();
+
+// 검색: 입력 멈추면 350ms 뒤 조회 (디바운스)
+let searchTimer = null;
+$("#sessSearch").oninput = e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadSessions(e.target.value.trim()), 350);
+};
 
 // 파일 업로드
 const drop = $("#drop"), fileInput = $("#file");

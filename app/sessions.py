@@ -8,6 +8,7 @@ a1-bot-server의 session_export 로직을 자기완결적으로 이식했다.
 from __future__ import annotations
 
 import glob
+import hashlib
 import json
 from pathlib import Path
 
@@ -40,31 +41,111 @@ def _first_prompt(path: Path) -> str:
     return ""
 
 
-def list_sessions() -> list[dict]:
-    """동기화된 세션 목록. 각 항목: id, project, prompts, size_kb, title, mtime."""
-    out = []
+# 세션 인덱스 캐시. 매 검색마다 67MB를 다시 읽지 않도록 mtime으로 무효화한다.
+# 값: {path: {meta..., "haystack": 소문자 전체 프롬프트, "prompts_list": [...]}}
+_INDEX: dict[str, dict] = {}
+
+
+def _sid(path: str) -> str:
+    """경로를 불투명 ID로. 원본 경로엔 사번 등이 박혀 있어 브라우저로 내보내지 않는다."""
+    return hashlib.sha1(path.encode("utf-8")).hexdigest()[:16]
+
+
+def _index_one(f: str) -> dict:
+    p = Path(f)
+    prompts = []
+    for r in _iter(p):
+        if r.get("type") == "last-prompt":
+            t = " ".join((r.get("lastPrompt") or "").split())
+            if t and t not in prompts:
+                prompts.append(t)
+    proj = mask(p.parent.name.replace("-Users-", "").replace("-home-", ""))
+    masked_prompts = [mask(t) for t in prompts]
+    return {
+        "id": _sid(f),        # 브라우저로 나가는 불투명 ID
+        "path": f,            # 서버 내부용 실제 경로 (외부로 안 나감)
+        "project": proj[:48],
+        "prompts": len(prompts),
+        "size_kb": p.stat().st_size // 1024,
+        "title": (masked_prompts[0] if masked_prompts else "")[:70],
+        "mtime": int(p.stat().st_mtime),
+        # 검색용: 프로젝트명 + 모든 프롬프트를 소문자로 합친 건초더미.
+        "haystack": (proj + " " + " \n".join(masked_prompts)).lower(),
+        "prompts_list": masked_prompts,
+    }
+
+
+def _refresh_index() -> None:
+    seen = set()
     for f in glob.glob(str(SYNC_ROOT / "*" / "*" / "*.jsonl")):
-        p = Path(f)
-        proj = p.parent.name.replace("-Users-", "").replace("-home-", "")
-        # 사번 등 식별자가 프로젝트명 경로에 있으므로 마스킹해 표시.
-        proj = mask(proj)
-        n_prompt = sum(1 for r in _iter(p) if r.get("type") == "last-prompt")
-        if n_prompt == 0:
-            continue
-        out.append({
-            "id": f,  # 전체 경로를 id로 (선택 시 그대로 넘김)
-            "project": proj[:48],
-            "prompts": n_prompt,
-            "size_kb": p.stat().st_size // 1024,
-            "title": mask(_first_prompt(p))[:70],
-            "mtime": int(p.stat().st_mtime),
-        })
+        seen.add(f)
+        mt = int(Path(f).stat().st_mtime)
+        if f not in _INDEX or _INDEX[f]["mtime"] != mt:
+            entry = _index_one(f)
+            if entry["prompts"] > 0:
+                _INDEX[f] = entry
+    for gone in set(_INDEX) - seen:  # 지워진 세션 제거
+        _INDEX.pop(gone, None)
+
+
+def _meta(entry: dict) -> dict:
+    return {k: entry[k] for k in ("id", "project", "prompts", "size_kb", "title", "mtime")}
+
+
+def list_sessions() -> list[dict]:
+    """동기화된 세션 목록 (최신순)."""
+    _refresh_index()
+    out = [_meta(e) for e in _INDEX.values()]
     out.sort(key=lambda x: x["mtime"], reverse=True)
     return out
 
 
-def extract(session_path: str) -> str:
-    """세션에서 마스킹된 재료를 뽑는다. 경로 검증으로 임의 파일 읽기를 막는다."""
+def search_sessions(query: str) -> list[dict]:
+    """키워드로 세션을 찾아 점수순으로 돌려준다. 빈 쿼리면 최신순 전체.
+
+    점수 = 각 검색어가 건초더미에 등장한 횟수의 합. 매칭된 프롬프트 조각을 함께 준다.
+    """
+    _refresh_index()
+    terms = [t for t in query.lower().split() if t]
+    if not terms:
+        return list_sessions()
+
+    scored = []
+    for e in _INDEX.values():
+        hay = e["haystack"]
+        score = sum(hay.count(t) for t in terms)
+        if score == 0:
+            continue
+        # 왜 매칭됐는지 보여줄 스니펫: 검색어가 든 첫 프롬프트.
+        snippet = next(
+            (pp for pp in e["prompts_list"] if any(t in pp.lower() for t in terms)),
+            e["title"],
+        )
+        m = _meta(e)
+        m["score"] = score
+        m["snippet"] = snippet[:80]
+        scored.append(m)
+    scored.sort(key=lambda x: (-x["score"], -x["mtime"]))
+    return scored
+
+
+def path_for(sid: str) -> str:
+    """불투명 ID → 실제 경로. 인덱스에 있는 것만 허용한다."""
+    _refresh_index()
+    for entry in _INDEX.values():
+        if entry["id"] == sid:
+            return entry["path"]
+    return ""
+
+
+def extract(sid: str) -> str:
+    """세션(불투명 ID)에서 마스킹된 재료를 뽑는다.
+
+    ID→경로 매핑은 인덱스에 있는 것만 허용하므로, 임의 파일 읽기가 원천 차단된다.
+    """
+    session_path = path_for(sid)
+    if not session_path:
+        return ""
     p = Path(session_path).resolve()
     if SYNC_ROOT not in p.parents or p.suffix != ".jsonl" or not p.exists():
         return ""

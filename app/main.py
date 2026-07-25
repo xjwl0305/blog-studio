@@ -25,7 +25,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .generate import Handle, generate
 from .mask import scan_secrets
-from .sessions import extract, list_sessions
+from .sessions import extract, list_sessions, search_sessions
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(name)s | %(message)s")
@@ -177,8 +177,8 @@ async def api_download(job_id: str):
 
 
 @app.get("/api/sessions")
-async def api_sessions():
-    return {"sessions": list_sessions()}
+async def api_sessions(q: str = ""):
+    return {"sessions": search_sessions(q) if q.strip() else list_sessions()}
 
 
 @app.get("/", response_class=HTMLResponse)
