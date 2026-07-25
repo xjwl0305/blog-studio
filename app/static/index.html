@@ -9,61 +9,66 @@
           --accent:#5b9dff; --ok:#3fb950; --warn:#d29922; --err:#f85149; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--fg);
-         font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Apple SD Gothic Neo",sans-serif; }
-  header { padding:20px 24px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Apple SD Gothic Neo",sans-serif; }
+  header { padding:18px 24px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
   header h1 { font-size:18px; margin:0; } header .sub { color:var(--mut); font-size:13px; }
-  main { max-width:900px; margin:0 auto; padding:24px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:20px; }
+  main { max-width:920px; margin:0 auto; padding:24px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:18px; }
   label { display:block; font-size:13px; color:var(--mut); margin-bottom:8px; }
-  textarea { width:100%; min-height:180px; background:#0c0e12; color:var(--fg); border:1px solid var(--line);
-             border-radius:8px; padding:12px; font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; resize:vertical; }
-  .drop { border:1.5px dashed var(--line); border-radius:8px; padding:20px; text-align:center; color:var(--mut);
-          cursor:pointer; transition:.15s; } .drop.over { border-color:var(--accent); color:var(--fg); background:#12151b; }
-  .thumbs { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
-  .thumb { position:relative; width:72px; height:72px; border-radius:6px; overflow:hidden; border:1px solid var(--line); }
-  .thumb img { width:100%; height:100%; object-fit:cover; } .thumb .x { position:absolute; top:2px; right:2px;
-     background:rgba(0,0,0,.6); border-radius:4px; padding:0 5px; cursor:pointer; font-size:12px; }
-  .thumb .f { display:flex; align-items:center; justify-content:center; height:100%; font-size:11px; color:var(--mut); padding:4px; }
-  button { background:var(--accent); color:#08111f; border:0; border-radius:8px; padding:11px 20px;
-           font-weight:600; font-size:14px; cursor:pointer; } button:disabled { opacity:.5; cursor:default; }
-  .row { display:flex; gap:12px; align-items:center; margin-top:16px; }
+  textarea { width:100%; min-height:150px; background:#0c0e12; color:var(--fg); border:1px solid var(--line);
+    border-radius:8px; padding:12px; font:14px/1.6 ui-monospace,Menlo,monospace; resize:vertical; }
+  .drop { border:1.5px dashed var(--line); border-radius:8px; padding:16px; text-align:center; color:var(--mut);
+    cursor:pointer; transition:.15s; } .drop.over { border-color:var(--accent); color:var(--fg); background:#12151b; }
+  .thumbs { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .thumb { position:relative; width:64px; height:64px; border-radius:6px; overflow:hidden; border:1px solid var(--line); }
+  .thumb img { width:100%; height:100%; object-fit:cover; }
+  .thumb .x { position:absolute; top:2px; right:2px; background:rgba(0,0,0,.6); border-radius:4px; padding:0 5px; cursor:pointer; }
+  .thumb .f { display:flex; align-items:center; justify-content:center; height:100%; font-size:10px; color:var(--mut); padding:4px; text-align:center; }
+  button { background:var(--accent); color:#08111f; border:0; border-radius:8px; padding:10px 18px;
+    font-weight:600; font-size:14px; cursor:pointer; } button:disabled { opacity:.5; cursor:default; }
+  button.ghost { background:transparent; color:var(--fg); border:1px solid var(--line); }
+  button.danger { background:transparent; color:var(--err); border:1px solid #5c1f1f; }
+  .row { display:flex; gap:10px; align-items:center; margin-top:14px; flex-wrap:wrap; }
   .status { color:var(--mut); font-size:14px; }
-  .bar { height:4px; background:var(--line); border-radius:2px; overflow:hidden; margin-top:10px; display:none; }
-  .bar.on { display:block; } .bar i { display:block; height:100%; width:35%; background:var(--accent);
-     border-radius:2px; animation:slide 1.4s ease-in-out infinite; } @keyframes slide { 0%{margin-left:-35%;} 100%{margin-left:100%;} }
+  select { width:100%; background:#0c0e12; color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:13px; }
+  .sess-hint { font-size:12px; color:var(--mut); margin-top:6px; }
+  .prog { background:#0c0e12; border:1px solid var(--line); border-radius:8px; padding:12px; margin-top:12px;
+    font:12px/1.7 ui-monospace,Menlo,monospace; max-height:200px; overflow:auto; display:none; }
+  .prog.on { display:block; } .prog .ln { color:var(--mut); } .prog .ln:last-child { color:var(--fg); }
+  .spin { display:inline-block; width:12px; height:12px; border:2px solid var(--line); border-top-color:var(--accent);
+    border-radius:50%; animation:spin .8s linear infinite; vertical-align:-1px; } @keyframes spin { to { transform:rotate(360deg); } }
   pre.draft { white-space:pre-wrap; word-break:break-word; background:#0c0e12; border:1px solid var(--line);
-     border-radius:8px; padding:16px; font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; max-height:600px; overflow:auto; }
-  .banner { border-radius:8px; padding:12px 14px; margin-bottom:14px; font-size:14px; }
+    border-radius:8px; padding:16px; font:13px/1.6 ui-monospace,Menlo,monospace; max-height:600px; overflow:auto; }
+  .banner { border-radius:8px; padding:11px 14px; margin-bottom:12px; font-size:14px; }
   .banner.ok { background:#12261a; border:1px solid #1f4d2e; color:#7ee787; }
   .banner.warn { background:#2a2312; border:1px solid #5c4a1a; color:#e3b341; }
   .banner.err { background:#2a1414; border:1px solid #5c1f1f; color:#ff7b72; }
-  .banner code { font-size:12px; opacity:.9; }
-  .actions { display:flex; gap:10px; margin:14px 0; } .ghost { background:transparent; color:var(--fg); border:1px solid var(--line); }
+  .banner code { font-size:12px; opacity:.9; } .actions { display:flex; gap:10px; margin:12px 0; }
   .cost { color:var(--mut); font-size:12px; margin-top:8px; }
 </style>
 </head>
 <body>
-<header>
-  <h1>📝 Blog Studio</h1>
-  <span class="sub">tailnet 전용 · 마스킹 자동 적용</span>
-</header>
+<header><h1>📝 Blog Studio</h1><span class="sub">tailnet 전용 · 마스킹 자동</span></header>
 <main>
   <div class="card">
-    <label>내용 · 히스토리 (겪은 일, 로그, 명령어, 수치를 편하게 붙여넣으세요)</label>
-    <textarea id="content" placeholder="예: 새벽마다 k3s가 죽었다. etcd 로그에 apply request took too long 947ms... iotop 보니 ES가 1.4MB/s..."></textarea>
+    <label>① 작업 세션에서 불러오기 (선택) — 이전에 넣어둔 컨텍스트 기반 작성</label>
+    <select id="session"><option value="">— 세션 선택 안 함 —</option></select>
+    <div class="sess-hint" id="sessHint">동기화된 세션을 재료로 쓰면, 내용을 직접 안 적어도 그 사건을 블로그로 정리합니다.</div>
 
-    <div style="margin-top:16px">
-      <label>이미지 · 파일 (스크린샷, 다이어그램, .md/.txt/.pdf)</label>
-      <div class="drop" id="drop">여기로 드래그하거나 클릭해서 선택 (png/jpg/pdf/md, 최대 25MB)</div>
-      <input type="file" id="file" multiple accept=".png,.jpg,.jpeg,.webp,.gif,.md,.txt,.pdf" hidden>
-      <div class="thumbs" id="thumbs"></div>
-    </div>
+    <label style="margin-top:18px">② 내용 · 히스토리 (직접 입력, 세션과 함께 써도 됨)</label>
+    <textarea id="content" placeholder="예: 새벽마다 k3s가 죽었다. etcd 로그에 apply request took too long 947ms..."></textarea>
+
+    <label style="margin-top:16px">③ 이미지 · 파일 (스크린샷·다이어그램·md/pdf)</label>
+    <div class="drop" id="drop">드래그하거나 클릭해서 선택 (png/jpg/pdf/md, 최대 25MB)</div>
+    <input type="file" id="file" multiple accept=".png,.jpg,.jpeg,.webp,.gif,.md,.txt,.pdf" hidden>
+    <div class="thumbs" id="thumbs"></div>
 
     <div class="row">
       <button id="go">초안 생성</button>
+      <button id="cancel" class="danger" style="display:none">취소</button>
       <span class="status" id="status">준비됨</span>
     </div>
-    <div class="bar" id="bar"><i></i></div>
+    <div class="prog" id="prog"></div>
   </div>
 
   <div class="card" id="result" style="display:none">
@@ -79,75 +84,95 @@
 
 <script>
 const $ = s => document.querySelector(s);
-let files = [];
+let files = [], curJobId = null, polling = false;
 
+// 세션 목록 로드
+fetch("/api/sessions").then(r => r.json()).then(d => {
+  const sel = $("#session");
+  (d.sessions || []).forEach(s => {
+    const o = document.createElement("option");
+    o.value = s.id;
+    o.textContent = `[${s.project}] ${s.title || "(제목없음)"} · ${s.prompts}질문 · ${s.size_kb}KB`;
+    sel.appendChild(o);
+  });
+  $("#sessHint").textContent = (d.sessions||[]).length
+    ? `동기화된 세션 ${d.sessions.length}개. 선택하면 그 사건을 블로그로 정리합니다.`
+    : "동기화된 세션이 없습니다. 내용을 직접 입력하세요.";
+});
+
+// 파일 업로드
 const drop = $("#drop"), fileInput = $("#file");
 drop.onclick = () => fileInput.click();
 drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
 drop.ondragleave = () => drop.classList.remove("over");
 drop.ondrop = e => { e.preventDefault(); drop.classList.remove("over"); addFiles(e.dataTransfer.files); };
 fileInput.onchange = () => addFiles(fileInput.files);
-
-function addFiles(list) {
-  for (const f of list) files.push(f);
-  renderThumbs();
-}
+function addFiles(list) { for (const f of list) files.push(f); renderThumbs(); }
 function renderThumbs() {
   const t = $("#thumbs"); t.innerHTML = "";
   files.forEach((f, i) => {
     const d = document.createElement("div"); d.className = "thumb";
-    if (f.type.startsWith("image/")) {
-      const img = document.createElement("img"); img.src = URL.createObjectURL(f); d.appendChild(img);
-    } else {
-      const x = document.createElement("div"); x.className = "f"; x.textContent = f.name; d.appendChild(x);
-    }
+    if (f.type.startsWith("image/")) { const img = document.createElement("img"); img.src = URL.createObjectURL(f); d.appendChild(img); }
+    else { const x = document.createElement("div"); x.className = "f"; x.textContent = f.name; d.appendChild(x); }
     const rm = document.createElement("div"); rm.className = "x"; rm.textContent = "✕";
-    rm.onclick = () => { files.splice(i, 1); renderThumbs(); };
-    d.appendChild(rm); t.appendChild(d);
+    rm.onclick = () => { files.splice(i, 1); renderThumbs(); }; d.appendChild(rm); t.appendChild(d);
   });
 }
 
-let curJobId = null;
 $("#go").onclick = async () => {
-  const content = $("#content").value;
-  if (!content.trim() && files.length === 0) { setStatus("내용이나 이미지를 넣어주세요"); return; }
-  $("#go").disabled = true; $("#bar").classList.add("on"); setStatus("생성 중… (1분 안팎 걸립니다)");
-  $("#result").style.display = "none";
-
+  const content = $("#content").value, session = $("#session").value;
+  if (!content.trim() && files.length === 0 && !session) { setStatus("세션·내용·이미지 중 하나는 넣어주세요"); return; }
+  $("#go").disabled = true; $("#cancel").style.display = "inline-block";
+  $("#result").style.display = "none"; $("#prog").classList.add("on"); $("#prog").innerHTML = "";
+  setStatus("시작하는 중…");
   const fd = new FormData();
-  fd.append("content", content);
+  fd.append("content", content); fd.append("session_id", session);
   files.forEach(f => fd.append("files", f));
   const r = await fetch("/api/generate", { method: "POST", body: fd });
-  const { job_id } = await r.json();
-  curJobId = job_id;
-  poll(job_id);
+  const { job_id } = await r.json(); curJobId = job_id; polling = true; poll(job_id);
+};
+
+$("#cancel").onclick = async () => {
+  if (!curJobId) return;
+  setStatus("취소 중…");
+  await fetch("/api/job/" + curJobId + "/cancel", { method: "POST" });
 };
 
 async function poll(id) {
-  const r = await fetch("/api/job/" + id);
-  const j = await r.json();
-  if (j.status === "running") { setTimeout(() => poll(id), 2000); return; }
-  $("#go").disabled = false; $("#bar").classList.remove("on");
-  if (j.status === "error") { setStatus("실패"); showBanner("err", "실패: " + j.error); return; }
-  setStatus("완료");
-  render(j);
+  if (!polling) return;
+  const j = await (await fetch("/api/job/" + id)).json();
+  renderProgress(j);
+  if (j.status === "running") {
+    setStatus(`작업 중… ${j.elapsed}초 경과`);
+    setTimeout(() => poll(id), 1500); return;
+  }
+  polling = false; $("#go").disabled = false; $("#cancel").style.display = "none";
+  if (j.status === "cancelled") { setStatus("취소됨"); showBanner("warn", "작업을 취소했습니다."); return; }
+  if (j.status === "error") { setStatus("실패"); showBanner("err", "실패: " + escapeHtml(j.error)); return; }
+  setStatus(`완료 · ${j.elapsed}초`); render(j);
+}
+
+function renderProgress(j) {
+  const box = $("#prog");
+  const running = j.status === "running";
+  const lines = (j.progress || []).map(escapeHtml);
+  box.innerHTML = lines.map(l => `<div class="ln">· ${l}</div>`).join("")
+    + (running ? `<div class="ln"><span class="spin"></span> 진행 중…</div>` : "");
+  box.scrollTop = box.scrollHeight;
 }
 
 function render(j) {
   $("#result").style.display = "block";
   $("#draft").textContent = j.draft;
-  $("#cost").textContent = `비용 $${j.cost_usd}`;
-  if (j.warnings && j.warnings.length) {
-    showBanner("warn", `⚠️ 자격증명·민감정보 의심 ${j.warnings.length}건 — 발행 전 직접 확인하세요:<br>`
+  $("#cost").textContent = `비용 $${j.cost_usd} · ${j.elapsed}초`;
+  if (j.warnings && j.warnings.length)
+    showBanner("warn", `⚠️ 확인 필요 ${j.warnings.length}건 — 발행 전 직접 보세요:<br>`
       + j.warnings.map(w => `<code>${escapeHtml(w)}</code>`).join("<br>"));
-  } else {
-    showBanner("ok", "✅ 자동 마스킹 통과 · 자격증명 의심 0건 (그래도 눈으로 한 번 확인하세요)");
-  }
+  else showBanner("ok", "✅ 자동 마스킹 통과 · 의심 0건 (그래도 눈으로 한 번 확인하세요)");
 }
-function showBanner(kind, html) { const b = $("#banner"); b.className = "banner " + kind; b.innerHTML = html; }
+function showBanner(k, html) { const b = $("#banner"); b.className = "banner " + k; b.innerHTML = html; }
 function setStatus(s) { $("#status").textContent = s; }
-function escapeHtml(s) { return s.replace(/[&<>]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c])); }
-
+function escapeHtml(s) { return (s||"").replace(/[&<>]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c])); }
 $("#copy").onclick = () => navigator.clipboard.writeText($("#draft").textContent).then(() => setStatus("복사됨"));
 $("#dl").onclick = () => { if (curJobId) location.href = "/api/job/" + curJobId + "/download"; };
 </script>
