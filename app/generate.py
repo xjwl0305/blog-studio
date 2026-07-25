@@ -26,9 +26,10 @@ log = logging.getLogger("blog.generate")
 CLAUDE_BIN = "/home/ubuntu/.local/bin/claude"
 WORKDIR = Path("/home/ubuntu/blog-studio")
 
-# 전체 상한. 이 안에 못 끝나면 중단.
-TIMEOUT = 420.0
-# 무진행 감시: 마지막 이벤트 이후 이만큼 새 이벤트가 없으면 stall로 보고 죽인다.
+# 전체 상한. 이미지가 많으면 오래 걸리므로 넉넉히.
+TIMEOUT = 600.0
+# 무진행 감시: 응답이 시작된 뒤 이만큼 새 이벤트가 없으면 stall로 보고 죽인다.
+# (첫 응답 전 warmup은 이미지 수에 비례해 따로 계산한다 — 아래 generate 참고.)
 STALL_SECONDS = 75.0
 
 _TECH = """너는 기술 블로그 초안을 쓰는 작가다. 아래 재료로 한국어 기술 블로그 글을 써라.
@@ -186,9 +187,15 @@ async def generate(
 
     final: dict | None = None
     last_event = time.monotonic()
+    streaming = False  # 첫 실질 응답(assistant/result)을 받았는가
+
+    # 첫 응답까지 허용 시간(warmup). 이미지가 많으면 업로드+시각 처리로 첫 토큰이
+    # 늦다(16장이면 2분 넘게 걸린다). 이미지 수에 비례해 넉넉히 준다.
+    # 응답이 시작된 뒤에는 STALL_SECONDS(짧게)로 진짜 stall만 잡는다.
+    warmup = max(STALL_SECONDS, 90 + len(image_paths) * 20)
 
     async def pump() -> None:
-        nonlocal final, last_event
+        nonlocal final, last_event, streaming
         assert proc.stdout is not None
         async for raw in proc.stdout:
             last_event = time.monotonic()
@@ -202,19 +209,24 @@ async def generate(
             et = event.get("type")
             if et == "result":
                 final = event
-            elif et == "assistant" and on_progress is not None:
-                for block in event.get("message", {}).get("content", []):
-                    if block.get("type") == "tool_use":
-                        on_progress(_describe_tool(block.get("name", "?"), block.get("input") or {}))
-                    elif block.get("type") == "text" and block.get("text", "").strip():
-                        on_progress("✍ 초안 작성 중…")
+                streaming = True
+            elif et == "assistant":
+                streaming = True
+                if on_progress is not None:
+                    for block in event.get("message", {}).get("content", []):
+                        if block.get("type") == "tool_use":
+                            on_progress(_describe_tool(block.get("name", "?"), block.get("input") or {}))
+                        elif block.get("type") == "text" and block.get("text", "").strip():
+                            on_progress("✍ 초안 작성 중…")
 
     async def watchdog() -> None:
-        # 무진행 감시. 스트림이 끊겨 이벤트가 안 오면 stall로 보고 중단시킨다.
+        # 무진행 감시. 첫 응답 전엔 warmup, 응답 시작 후엔 STALL_SECONDS를 쓴다.
         while proc.returncode is None:
             await asyncio.sleep(5)
-            if time.monotonic() - last_event > STALL_SECONDS:
-                log.warning("무진행 %d초 — stall로 판단, 중단", int(STALL_SECONDS))
+            limit = STALL_SECONDS if streaming else warmup
+            if time.monotonic() - last_event > limit:
+                log.warning("무진행 %d초(%s) — 중단",
+                            int(limit), "streaming" if streaming else "warmup")
                 _kill_tree(proc)
                 return
 

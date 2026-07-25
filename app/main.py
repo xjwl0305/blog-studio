@@ -89,11 +89,13 @@ async def _run_job(job: Job, content: str, images: list[Path], material: str,
     from time import monotonic
     job.started = monotonic()
     # 첫 이벤트가 오기까지(재료가 크면 수십 초) 빈 화면이 되지 않게 초기 표시.
+    wait_hint = ("이미지가 많아 첫 응답까지 1~3분 걸릴 수 있습니다"
+                 if len(images) >= 6 else "첫 응답까지 잠시 걸립니다")
     job.progress.append(
         "🧠 재료 분석 중… "
         + (f"세션 {len(material):,}자 · " if material else "")
         + (f"이미지 {len(images)}장 · " if images else "")
-        + "첫 응답까지 잠시 걸립니다"
+        + wait_hint
     )
 
     def on_progress(line: str) -> None:
