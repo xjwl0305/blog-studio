@@ -26,11 +26,13 @@ log = logging.getLogger("blog.generate")
 CLAUDE_BIN = "/home/ubuntu/.local/bin/claude"
 WORKDIR = Path("/home/ubuntu/blog-studio")
 
-# 전체 상한. 이미지가 많으면 오래 걸리므로 넉넉히.
+# 전체 상한. 이미지가 많거나 긴 글이면 오래 걸리므로 넉넉히.
 TIMEOUT = 600.0
 # 무진행 감시: 응답이 시작된 뒤 이만큼 새 이벤트가 없으면 stall로 보고 죽인다.
+# 75초는 짧았다 — 블로그 글 + 예시 문서처럼 긴 글을 한 번에 생성하면 스트림 이벤트
+# 사이 간격이 그보다 벌어진다(실측). 진짜 stall(무한 침묵)은 전체 TIMEOUT이 잡는다.
 # (첫 응답 전 warmup은 이미지 수에 비례해 따로 계산한다 — 아래 generate 참고.)
-STALL_SECONDS = 75.0
+STALL_SECONDS = 180.0
 
 _TECH = """너는 기술 블로그 초안을 쓰는 작가다. 아래 재료로 한국어 기술 블로그 글을 써라.
 문체는 '우아한형제들 기술블로그' 스타일을 따른다.
@@ -322,8 +324,8 @@ async def generate(
     # 둘 다 이미지 수에 비례해 넉넉히 잡는다. 진짜 stall(연결은 살았는데 무한 침묵)은
     # 그래도 결국 걸린다.
     n_img = len(image_paths)
-    warmup = max(120, 90 + n_img * 20)          # 첫 응답 전
-    stall_gap = max(STALL_SECONDS, 75 + n_img * 15)  # 응답 시작 후
+    warmup = max(180, 120 + n_img * 20)              # 첫 응답 전
+    stall_gap = max(STALL_SECONDS, 120 + n_img * 15)  # 응답 시작 후
 
     async def pump() -> None:
         nonlocal final, last_event, streaming
