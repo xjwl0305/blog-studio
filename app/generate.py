@@ -228,12 +228,27 @@ def _kill_tree(proc) -> None:
             pass
 
 
-def build_prompt(content: str, image_paths: list[Path], material: str = "", blog_type: str = "tech") -> str:
+def build_prompt(content: str, image_paths: list[Path], material: str = "",
+                 blog_type: str = "tech", ref_style: str = "") -> str:
     system = SYSTEM_PROMPTS.get(blog_type, _TECH) + _SEO
     # 창작성 글(여행·일상·리뷰)에만 '사람처럼 쓰기' 규칙을 붙인다.
     # 기술 글은 구조적인 게 오히려 낫다.
     if blog_type in ("travel", "daily", "review"):
         system += _HUMAN_VOICE
+    # 참고 글이 있으면 그 문체를 최우선으로 따르게 한다.
+    # 위 프롬프트의 말투 지시(예: "기본은 ~다체")와 충돌하면 참고 글이 이긴다.
+    if ref_style:
+        system += (
+            "\n\n---\n\n## 문체 참고 (⚠️ 위의 모든 말투 지시보다 이걸 우선하라)\n"
+            "아래는 이 블로그가 따르고 싶은 참고 글이다. **이 글의 말투를 그대로 흉내 내라.**\n"
+            "내용이 아니라 '어떻게 말하는가'를 배껴야 한다:\n"
+            "- **존댓말/반말(어미)**: 참고 글이 '~습니다'면 너도 '~습니다', "
+            "'~해요'면 '~해요', '~다'면 '~다'로 써라. **위에서 다른 어미를 지시했더라도 "
+            "참고 글의 어미를 따라라.**\n"
+            "- 문장 길이·호흡, 독자에게 말 거는 방식, 감탄사·이모지 습관, 단어 선택도 맞춰라.\n"
+            "- 단, 앞서 말한 '구조'(장소별 섹션, 정보 인용구 등)와 사생활 보호는 그대로 지켜라.\n\n"
+            "참고 글:\n```\n" + ref_style[:3000] + "\n```"
+        )
     parts = [system, "\n---\n\n# 재료 (사용자 제공 내용·히스토리)\n", mask(content)]
     if material:
         parts.append(
@@ -272,10 +287,11 @@ async def generate(
     image_paths: list[Path],
     material: str = "",
     blog_type: str = "tech",
+    ref_style: str = "",
     on_progress=None,
     handle: Handle | None = None,
 ) -> Draft:
-    prompt = build_prompt(content, image_paths, material, blog_type)
+    prompt = build_prompt(content, image_paths, material, blog_type, ref_style)
     argv = [
         CLAUDE_BIN, "-p", prompt,
         "--output-format", "stream-json", "--verbose",

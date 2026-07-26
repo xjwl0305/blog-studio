@@ -73,6 +73,10 @@
     <label style="margin-top:18px" id="contentLabel">② 내용 · 히스토리 (직접 입력, 세션과 함께 써도 됨)</label>
     <textarea id="content" placeholder="예: 새벽마다 k3s가 죽었다. etcd 로그에 apply request took too long 947ms..."></textarea>
 
+    <label style="margin-top:16px">✍️ 참고할 글 링크 (선택) — 이 글의 말투를 따라 씁니다</label>
+    <input type="text" id="refUrl" placeholder="예: https://blog.naver.com/블로그id/글번호 — 붙여넣으면 그 말투로 씁니다"
+           style="width:100%; background:#0c0e12; color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:13px; margin-bottom:6px;">
+
     <label style="margin-top:16px">③ 이미지 · 파일 (스크린샷·다이어그램·md/pdf)</label>
     <div class="drop" id="drop">드래그하거나 클릭해서 선택 (png/jpg/pdf/md, 최대 25MB)</div>
     <input type="file" id="file" multiple accept=".png,.jpg,.jpeg,.webp,.gif,.md,.txt,.pdf" hidden>
@@ -180,6 +184,7 @@ $("#go").onclick = async () => {
   const fd = new FormData();
   fd.append("content", content); fd.append("session_id", session);
   fd.append("blog_type", blogType);
+  fd.append("ref_url", $("#refUrl").value.trim());
   files.forEach(f => fd.append("files", f));
   const r = await fetch("/api/generate", { method: "POST", body: fd });
   const { job_id } = await r.json(); curJobId = job_id; polling = true; poll(job_id);

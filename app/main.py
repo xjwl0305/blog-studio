@@ -23,6 +23,7 @@ from fastapi import FastAPI, Form, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
+from .fetch_ref import fetch_reference
 from .generate import Handle, generate
 from .mask import scan_secrets
 from .sessions import extract, list_sessions, search_sessions
@@ -85,7 +86,7 @@ async def _save_uploads(files: list[UploadFile], job_id: str) -> tuple[list[Path
 
 
 async def _run_job(job: Job, content: str, images: list[Path], material: str,
-                   blog_type: str) -> None:
+                   blog_type: str, ref_style: str) -> None:
     from time import monotonic
     job.started = monotonic()
     # 첫 이벤트가 오기까지(재료가 크면 수십 초) 빈 화면이 되지 않게 초기 표시.
@@ -109,6 +110,7 @@ async def _run_job(job: Job, content: str, images: list[Path], material: str,
     try:
         async with _lock:
             result = await generate(content, images, material, blog_type,
+                                    ref_style=ref_style,
                                     on_progress=on_progress, handle=job.handle)
     except Exception as exc:
         log.exception("생성 중 예외")
@@ -133,12 +135,19 @@ async def api_generate(
     content: str = Form(""),
     session_id: str = Form(""),
     blog_type: str = Form("tech"),
+    ref_url: str = Form(""),
     files: list[UploadFile] = None,
 ):
     job = Job(id=uuid.uuid4().hex)
     _JOBS[job.id] = job
     images, upload_errs = await _save_uploads(files or [], job.id)
     material = extract(session_id) if session_id else ""
+    # 참고 링크가 있으면 본문을 읽어 문체 참고 자료로 넘긴다.
+    ref_style = ""
+    if ref_url.strip():
+        ref_style, ref_err = fetch_reference(ref_url)
+        if ref_err:
+            job.warnings.append(f"참고 링크: {ref_err}")
     if not content.strip() and not images and not material:
         job.status, job.error = "error", "내용·이미지·세션 중 하나는 있어야 합니다."
         return {"job_id": job.id}
@@ -146,7 +155,7 @@ async def api_generate(
         job.warnings.append("선택한 세션에서 재료를 뽑지 못했습니다(경로 확인).")
     if upload_errs:
         job.warnings.extend(upload_errs)
-    asyncio.create_task(_run_job(job, content, images, material, blog_type))
+    asyncio.create_task(_run_job(job, content, images, material, blog_type, ref_style))
     return {"job_id": job.id}
 
 
